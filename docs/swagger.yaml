@@ -1,0 +1,38 @@
+info:
+  contact: {}
+paths:
+  /listAssets/{walletAddress}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        fetches the assets by user wallet address
+        one of the parameters walletAddress and x-wallet is mandatory and must be provided
+      operationId: get-struct-array-by-string
+      parameters:
+      - description: Wallet Address
+        in: path
+        name: walletAddress
+        type: string
+      - description: Wallet Address
+        in: header
+        name: x-wallet
+        type: string
+      - description: Offset
+        in: query
+        name: offset
+        required: true
+        type: integer
+      - description: Limit
+        in: query
+        name: limit
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+swagger: "2.0"
