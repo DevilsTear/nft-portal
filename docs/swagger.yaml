@@ -1,3 +1,30 @@
+definitions:
+  model.APIStatus:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+  model.Paging:
+    properties:
+      count:
+        type: string
+      limit:
+        type: integer
+      offset:
+        type: integer
+    type: object
+  model.Result:
+    properties:
+      apistatus:
+        $ref: '#/definitions/model.APIStatus'
+      data: {}
+      paging:
+        $ref: '#/definitions/model.Paging'
+    type: object
 info:
   contact: {}
 paths:
@@ -32,7 +59,11 @@ paths:
       - application/json
       responses:
         "200":
-          description: ok
+          description: status = true, Code = 200
           schema:
-            type: string
+            $ref: '#/definitions/model.Result'
+        "400":
+          description: status = true, Code = 400, Message = Provide a valid walletAddress
+          schema:
+            $ref: '#/definitions/model.Result'
 swagger: "2.0"

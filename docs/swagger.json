@@ -44,11 +44,59 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "ok",
+                        "description": "status = true, Code = 200",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/model.Result"
+                        }
+                    },
+                    "400": {
+                        "description": "status = true, Code = 400, Message = Provide a valid walletAddress",
+                        "schema": {
+                            "$ref": "#/definitions/model.Result"
                         }
                     }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "model.APIStatus": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "model.Paging": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "string"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.Result": {
+            "type": "object",
+            "properties": {
+                "apistatus": {
+                    "$ref": "#/definitions/model.APIStatus"
+                },
+                "data": {},
+                "paging": {
+                    "$ref": "#/definitions/model.Paging"
                 }
             }
         }
