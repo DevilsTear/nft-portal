@@ -9,9 +9,9 @@ type APIStatus struct {
 
 // Paging
 type Paging struct {
-	Offset int    `json:"offset" bson:"offset"`
-	Limit  int    `json:"limit" bson:"limit"`
-	Count  string `json:"count" bson:"count"`
+	Offset *int `json:"offset" bson:"offset"`
+	Limit  *int `json:"limit" bson:"limit"`
+	Count  *int `json:"count" bson:"count"`
 }
 
 // Result
