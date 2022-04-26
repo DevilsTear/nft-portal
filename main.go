@@ -1,9 +1,16 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"nft-portal/model"
 	"os"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	_ "nft-portal/docs"
 
@@ -13,6 +20,23 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/middleware/accesslog"
+)
+
+const (
+	// Path to the AWS CA file
+	caFilePath = "certificates/rds-combined-ca-bundle.pem"
+
+	// Timeout operations after N seconds
+	connectTimeout  = 5
+	queryTimeout    = 30
+	username        = "fundletestdbusr"
+	password        = "fundletestdbpwd"
+	clusterEndpoint = "docdb-2022-04-25-08-55-12.cluster-czkxykjhgj7r.eu-central-1.docdb.amazonaws.com:27017"
+
+	// Which instances to read from
+	readPreference = "secondaryPreferred"
+
+	connectionStringTemplate = "mongodb://%s:%s@%s/docdb-2022-04-25-08-55-12?tls=true&replicaSet=rs0&readpreference=%s"
 )
 
 // @title           NFT PORTAL API
@@ -26,6 +50,7 @@ import (
 // @host      localhost:8080
 // @BasePath  /api/v1
 func main() {
+	AWSDocDB()
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -88,15 +113,13 @@ func listAssets(ctx iris.Context) {
 	}
 
 	response := model.Result{
-		Paging: model.Paging{
+		PageObject: model.PageObject{
 			Offset: &cursor,
 			Limit:  &limit,
 		},
-		APIStatus: model.APIStatus{
-			Status:  true,
-			Code:    200,
-			Message: "Success",
-		},
+		Status:  true,
+		Code:    200,
+		Message: "Success",
 	}
 
 	_, err = opensea.ParseAddress(walletAddress)
@@ -115,11 +138,9 @@ func listAssets(ctx iris.Context) {
 	params := opensea.GetAssetsParams{}
 	err = ctx.ReadJSON(&params)
 	if err != nil {
-		response.APIStatus = model.APIStatus{
-			Status:  true,
-			Code:    400,
-			Message: err.Error(),
-		}
+		response.Status = true
+		response.Code = 400
+		response.Message = err.Error()
 		ctx.JSON(response)
 		return
 	}
@@ -139,11 +160,9 @@ func listAssets(ctx iris.Context) {
 	openseaAPI, err := opensea.NewOpensea(os.Getenv("OPENSEA_API_KEY"))
 	if err != nil {
 		// ctx.StopWithError(iris.StatusBadRequest, err)
-		response.APIStatus = model.APIStatus{
-			Status:  true,
-			Code:    400,
-			Message: err.Error(),
-		}
+		response.Status = true
+		response.Code = 400
+		response.Message = err.Error()
 		ctx.JSON(response)
 		return
 	}
@@ -151,11 +170,9 @@ func listAssets(ctx iris.Context) {
 	assets, err := openseaAPI.GetAssets(params)
 	if err != nil {
 		// ctx.StopWithError(iris.StatusBadRequest, err)
-		response.APIStatus = model.APIStatus{
-			Status:  true,
-			Code:    400,
-			Message: err.Error(),
-		}
+		response.Status = true
+		response.Code = 400
+		response.Message = err.Error()
 		ctx.JSON(response)
 		return
 	}
@@ -196,15 +213,13 @@ func listAssetsTest(ctx iris.Context) {
 	}
 
 	response := model.Result{
-		Paging: model.Paging{
+		PageObject: model.PageObject{
 			Offset: &cursor,
 			Limit:  &limit,
 		},
-		APIStatus: model.APIStatus{
-			Status:  true,
-			Code:    200,
-			Message: "Success",
-		},
+		Status:  true,
+		Code:    200,
+		Message: "Success",
 	}
 
 	_, err = opensea.ParseAddress(walletAddress)
@@ -223,11 +238,9 @@ func listAssetsTest(ctx iris.Context) {
 	params := opensea.GetAssetsParams{}
 	err = ctx.ReadJSON(&params)
 	if err != nil {
-		response.APIStatus = model.APIStatus{
-			Status:  true,
-			Code:    400,
-			Message: err.Error(),
-		}
+		response.Status = true
+		response.Code = 400
+		response.Message = err.Error()
 		ctx.JSON(response)
 		return
 	}
@@ -247,11 +260,9 @@ func listAssetsTest(ctx iris.Context) {
 	openseaAPI, err := opensea.NewOpensea(os.Getenv("OPENSEA_API_KEY"))
 	if err != nil {
 		// ctx.StopWithError(iris.StatusBadRequest, err)
-		response.APIStatus = model.APIStatus{
-			Status:  true,
-			Code:    400,
-			Message: err.Error(),
-		}
+		response.Status = true
+		response.Code = 400
+		response.Message = err.Error()
 		ctx.JSON(response)
 		return
 	}
@@ -259,11 +270,9 @@ func listAssetsTest(ctx iris.Context) {
 	assets, err := openseaAPI.GetAssets(params)
 	if err != nil {
 		// ctx.StopWithError(iris.StatusBadRequest, err)
-		response.APIStatus = model.APIStatus{
-			Status:  true,
-			Code:    400,
-			Message: err.Error(),
-		}
+		response.Status = true
+		response.Code = 400
+		response.Message = err.Error()
 		ctx.JSON(response)
 		return
 	}
@@ -308,6 +317,65 @@ func makeAccessLog() *accesslog.AccessLog {
 	return ac
 }
 
-func Ptr[T any](v T) *T {
-	return &v
+func AWSDocDB() {
+	connectionURI := fmt.Sprintf(connectionStringTemplate, username, password, clusterEndpoint, readPreference)
+	connectionURI = "mongodb://fundletestdbusr:fundletestdbpwd@fundle-docdb-test.cluster-czkxykjhgj7r.eu-central-1.docdb.amazonaws.com:27017/?replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false"
+	connectionURI = "mongodb://fundletestdbusr:<insertYourPassword>@docdb-2022-04-26-23-15-40.cluster-citmarx0zdgq.us-east-1.docdb.amazonaws.com:27017/?ssl=true&ssl_ca_certs=rds-combined-ca-bundle.pem&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false"
+	client, err := mongo.NewClient(options.Client().ApplyURI(connectionURI))
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout*time.Second)
+	defer cancel()
+
+	err = client.Connect(ctx)
+	if err != nil {
+		log.Fatalf("Failed to connect to cluster: %v", err)
+	}
+
+	// Force a connection to verify our connection string
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Fatalf("Failed to ping cluster: %v", err)
+	}
+
+	fmt.Println("Connected to DocumentDB!")
+
+	collection := client.Database("sample-database").Collection("sample-collection")
+
+	ctx, cancel = context.WithTimeout(context.Background(), queryTimeout*time.Second)
+	defer cancel()
+
+	res, err := collection.InsertOne(ctx, bson.M{"name": "pi", "value": 3.14159})
+	if err != nil {
+		log.Fatalf("Failed to insert document: %v", err)
+	}
+
+	id := res.InsertedID
+	log.Printf("Inserted document ID: %s", id)
+
+	ctx, cancel = context.WithTimeout(context.Background(), queryTimeout*time.Second)
+	defer cancel()
+
+	cur, err := collection.Find(ctx, bson.D{})
+
+	if err != nil {
+		log.Fatalf("Failed to run find query: %v", err)
+	}
+	defer cur.Close(ctx)
+
+	for cur.Next(ctx) {
+		var result bson.M
+		err := cur.Decode(&result)
+		log.Printf("Returned: %v", result)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if err := cur.Err(); err != nil {
+		log.Fatal(err)
+	}
 }

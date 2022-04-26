@@ -7,8 +7,8 @@ type APIStatus struct {
 	Message string `json:"message" bson:"message"`
 }
 
-// Paging
-type Paging struct {
+// PageObject
+type PageObject struct {
 	Offset *int `json:"offset" bson:"offset"`
 	Limit  *int `json:"limit" bson:"limit"`
 	Count  *int `json:"count" bson:"count"`
@@ -16,7 +16,9 @@ type Paging struct {
 
 // Result
 type Result struct {
-	Data      interface{} `json:"data" bson:"data"`
-	Paging    Paging      `json:"paging" bson:"paging"`
-	APIStatus APIStatus   `json:"apistatus" bson:"apistatus"`
+	Data       interface{} `json:"data" bson:"data"`
+	Status     bool        `json:"status" bson:"status"`
+	Code       int         `json:"code" bson:"code"`
+	Message    string      `json:"message" bson:"message"`
+	PageObject PageObject  `json:"page-object" bson:"page-object"`
 }
