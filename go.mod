@@ -10,13 +10,18 @@ require (
 require github.com/joho/godotenv v1.4.0
 
 require (
+	github.com/DevilsTear/moralis-go-client v1.0.7 // indirect
+	github.com/antihax/optional v1.0.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.0.2 // indirect
 	github.com/xdg-go/stringprep v1.0.2 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
+	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
+	google.golang.org/appengine v1.6.6 // indirect
 )
 
 require (

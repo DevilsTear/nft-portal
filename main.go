@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"nft-portal/model"
 	"os"
@@ -14,6 +18,8 @@ import (
 
 	_ "nft-portal/docs"
 
+	moralis "github.com/DevilsTear/moralis-go-client/apis"
+	"github.com/DevilsTear/moralis-go-client/models"
 	"github.com/DevilsTear/opensea-go-api"
 	"github.com/iris-contrib/swagger/swaggerFiles"
 	"github.com/iris-contrib/swagger/v12"
@@ -31,12 +37,12 @@ const (
 	queryTimeout    = 30
 	username        = "fundletestdbusr"
 	password        = "fundletestdbpwd"
-	clusterEndpoint = "docdb-2022-04-25-08-55-12.cluster-czkxykjhgj7r.eu-central-1.docdb.amazonaws.com:27017"
+	clusterEndpoint = "docdb-2022-04-26-23-15-40.citmarx0zdgq.us-east-1.docdb.amazonaws.com:27017"
 
 	// Which instances to read from
 	readPreference = "secondaryPreferred"
 
-	connectionStringTemplate = "mongodb://%s:%s@%s/docdb-2022-04-25-08-55-12?tls=true&replicaSet=rs0&readpreference=%s"
+	connectionStringTemplate = "mongodb://%s:%s@%s/sample-database?tls=true&replicaSet=rs0&readpreference=%s"
 )
 
 // @title           NFT PORTAL API
@@ -50,11 +56,13 @@ const (
 // @host      localhost:8080
 // @BasePath  /api/v1
 func main() {
-	AWSDocDB()
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+
+	// AWSDocDB()
+	MoralisTest()
 
 	ac := makeAccessLog()
 	defer ac.Close() // Close the underline file.
@@ -80,6 +88,30 @@ func main() {
 	app.Get("/swagger", swaggerUI)
 	app.Get("/swagger/{any:path}", swaggerUI)
 	app.Listen(":8080")
+}
+
+func MoralisTest() models.NftMetadataCollection {
+	auth := context.WithValue(context.Background(), moralis.ContextAPIKey, moralis.APIKey{
+		Key: os.Getenv("MORALIS_API_KEY"),
+		// Prefix: "Bearer", // Omit if not necessary.
+	})
+	// r, err := client.Service.Operation(auth, args)
+	config := moralis.NewConfiguration()
+
+	client := moralis.NewAPIClient(config)
+	//search?chain=eth&format=decimal&q=ape&filter=name
+	searchOptions := moralis.TokenApiSearchNFTsOpts{}
+	res, httpRes, err := client.TokenApi.SearchNFTs(auth, "APE", &searchOptions)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if httpRes != nil {
+		fmt.Println(httpRes)
+	}
+
+	return res
 }
 
 // listAssets
@@ -319,9 +351,13 @@ func makeAccessLog() *accesslog.AccessLog {
 
 func AWSDocDB() {
 	connectionURI := fmt.Sprintf(connectionStringTemplate, username, password, clusterEndpoint, readPreference)
-	connectionURI = "mongodb://fundletestdbusr:fundletestdbpwd@fundle-docdb-test.cluster-czkxykjhgj7r.eu-central-1.docdb.amazonaws.com:27017/?replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false"
-	connectionURI = "mongodb://fundletestdbusr:<insertYourPassword>@docdb-2022-04-26-23-15-40.cluster-citmarx0zdgq.us-east-1.docdb.amazonaws.com:27017/?ssl=true&ssl_ca_certs=rds-combined-ca-bundle.pem&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false"
-	client, err := mongo.NewClient(options.Client().ApplyURI(connectionURI))
+
+	tlsConfig, err := getCustomTLSConfig(caFilePath)
+	if err != nil {
+		log.Fatalf("Failed getting TLS configuration: %v", err)
+	}
+
+	client, err := mongo.NewClient(options.Client().ApplyURI(connectionURI).SetTLSConfig(tlsConfig))
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
@@ -378,4 +414,22 @@ func AWSDocDB() {
 	if err := cur.Err(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func getCustomTLSConfig(caFile string) (*tls.Config, error) {
+	tlsConfig := new(tls.Config)
+	certs, err := ioutil.ReadFile(caFile)
+
+	if err != nil {
+		return tlsConfig, err
+	}
+
+	tlsConfig.RootCAs = x509.NewCertPool()
+	ok := tlsConfig.RootCAs.AppendCertsFromPEM(certs)
+
+	if !ok {
+		return tlsConfig, errors.New("Failed parsing pem file")
+	}
+
+	return tlsConfig, nil
 }
