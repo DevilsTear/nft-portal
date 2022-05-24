@@ -16,9 +16,7 @@ type PageObject struct {
 
 // Result
 type Result struct {
-	Data       interface{} `json:"data" bson:"data"`
-	Status     bool        `json:"status" bson:"status"`
-	Code       int         `json:"code" bson:"code"`
-	Message    string      `json:"message" bson:"message"`
-	PageObject PageObject  `json:"page-object" bson:"page-object"`
+	Data interface{} `json:"data" bson:"data"`
+	APIStatus
+	PageObject
 }

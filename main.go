@@ -149,9 +149,11 @@ func listAssets(ctx iris.Context) {
 			Offset: &cursor,
 			Limit:  &limit,
 		},
-		Status:  true,
-		Code:    200,
-		Message: "Success",
+		APIStatus: model.APIStatus{
+			Status:  true,
+			Code:    200,
+			Message: "Success",
+		},
 	}
 
 	_, err = opensea.ParseAddress(walletAddress)
@@ -249,9 +251,11 @@ func listAssetsTest(ctx iris.Context) {
 			Offset: &cursor,
 			Limit:  &limit,
 		},
-		Status:  true,
-		Code:    200,
-		Message: "Success",
+		APIStatus: model.APIStatus{
+			Status:  true,
+			Code:    200,
+			Message: "Success",
+		},
 	}
 
 	_, err = opensea.ParseAddress(walletAddress)
